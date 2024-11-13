@@ -1,0 +1,55 @@
+[tool.black]
+line-length = 110
+target-version = ["py39"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict = true
+
+[tool.poetry]
+name = "python-versions-hook"
+version = "0.0.0"
+description = "Update the Python versions"
+readme = "README.md"
+keywords = ["pre-commit"]
+license = "BSD-2-Clause"
+classifiers = ["Development Status :: 5 - Production/Stable", "Environment :: Console", "License :: OSI Approved :: BSD License", "Operating System :: OS Independent", "Programming Language :: Python", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.9", "Typing :: Typed"]
+authors = ["Stéphane Brunner <stephane.brunner@gmail.com>"]
+repository = "https://github.com/sbrunner/python-versions-hook"
+
+[tool.poetry.scripts]
+python-versions-hook = "python_versions_hook:main"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+multi-repo-automation = "==1.4.1"
+
+[tool.poetry.group.dev.dependencies]
+prospector = { version = "1.13.1", extras = ["with_bandit", "with_mypy", "with_pyroma", "with_ruff"] }
+prospector-profile-utils = "1.10.1"
+prospector-profile-duplicated = "1.5.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning", "poetry-plugin-tweak-dependencies-version", "poetry-plugin-drop-python-upper-constraint"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+pattern = "^(?P<base>\\d+(\\.\\d+)*)"
+format-jinja = """
+{%- if env.get("VERSION_TYPE") == "version_branch" -%}
+{{serialize_pep440(bump_version(base, 1 if env.get("IS_MASTER") == "TRUE" else 2), dev=distance)}}
+{%- elif distance == 0 -%}
+{{serialize_pep440(base)}}
+{%- else -%}
+{{serialize_pep440(bump_version(base), dev=distance)}}
+{%- endif -%}
+"""
+
+[tool.poetry-plugin-tweak-dependencies-version]
+default = "present"

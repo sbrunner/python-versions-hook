@@ -1,0 +1,82 @@
+name: Continuous integration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+env:
+  HAS_SECRETS: ${{ secrets.HAS_SECRETS }}
+  PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+jobs:
+  pre-commit:
+    name: Pre commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: "!startsWith(github.event.head_commit.message, '[skip ci] ')"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: GitHub event
+        run: echo ${GITHUB_EVENT} | python3 -m json.tool
+        env:
+          GITHUB_EVENT: ${{ toJson(github) }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --requirement=ci/requirements-pre-commit.txt
+      - run: pip install --editable=.
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+            pre-commit-
+      - run: pre-commit run --all-files
+        env:
+          SKIP: poetry-lock,pipenv-lock,helm-lock
+      - run: git diff --exit-code --patch > /tmp/pre-commit.patch || true
+        if: failure()
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apply pre-commit fix.patch
+          path: /tmp/pre-commit.patch
+          retention-days: 1
+        if: failure()
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: "!startsWith(github.event.head_commit.message, '[skip ci] ')"
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --requirement=ci/requirements.txt
+
+      - name: Init pypi
+        run: |-
+          echo "[pypi]" > ~/.pypirc
+          echo "username = ${{ secrets.PYPI_USERNAME }}" >> ~/.pypirc
+          echo "password = ${{ secrets.PYPI_PASSWORD }}" >> ~/.pypirc
+        if: env.HAS_SECRETS == 'HAS_SECRETS'
+      - name: Publish
+        run: c2cciutils-publish
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        if: env.HAS_SECRETS == 'HAS_SECRETS'

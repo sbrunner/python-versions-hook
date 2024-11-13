@@ -1,0 +1,6 @@
+- id: python-versions
+  name: python versions
+  entry: python-versions-hook
+  language: python
+  files: ^(|.*/)pyproject\.toml$
+  pass_filenames: false

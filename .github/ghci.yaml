@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://geoservices-int.camptocamp.com/github/schema.json
+
+audit:
+  snyk:
+    files-no-install:
+      - tests/Pipfile
+    monitor-arguments:
+      - --all-projects
+      - --exclude=tests/Pipfile
+    test-arguments:
+      - --all-projects
+      - --fail-on=all
+      - --severity-threshold=high
+      - --exclude=tests/Pipfile
+    fix-arguments:
+      - --all-projects
+      - --exclude=tests/Pipfile
