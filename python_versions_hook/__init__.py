@@ -2,11 +2,13 @@
 
 import argparse
 import os
+import pkgutil
 import re
 import subprocess
 from typing import Union
 
 import multi_repo_automation as mra
+import packaging.specifiers
 import packaging.version
 import tomlkit
 
@@ -24,7 +26,12 @@ def _natural_sort_key(text: str) -> list[Union[int, str]]:
     return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
-_python_version_re = re.compile(r"^>=(\d+\.\d+),<(\d+\.\d+)$")
+def _get_python_version() -> tuple[packaging.version.Version, packaging.version.Version]:
+    first_version = packaging.version.parse("3.0")
+    data = pkgutil.get_data("python_versions_hook", ".python-version")
+    assert data is not None
+    last_version = packaging.version.parse(data.decode("utf-8").strip())
+    return first_version, last_version
 
 
 def main() -> None:
@@ -32,21 +39,30 @@ def main() -> None:
     args_parser = argparse.ArgumentParser("Update the Python versions in all the files")
     args_parser.parse_args()
 
-    minimal_version = packaging.version.parse("3.99")
+    version_set = None
     for pyproject_filename in _filenames("pyproject.toml"):
         with mra.EditTOML(pyproject_filename) as pyproject:
             if "requires-python" in pyproject.get("project", {}):
-                match = _python_version_re.match(pyproject["project"]["requires-python"])
-                if match:
-                    version = packaging.version.parse(match.group(1))
-                    if version < minimal_version:
-                        minimal_version = version
+                version_set = packaging.specifiers.SpecifierSet(pyproject["project"]["requires-python"])
             elif "python" in pyproject.get("tool", {}).get("poetry", {}).get("dependencies", {}):
-                match = _python_version_re.match(pyproject["tool"]["poetry"]["dependencies"]["python"])
-                if match:
-                    version = packaging.version.parse(match.group(1))
-                    if version < minimal_version:
-                        minimal_version = version
+                version_set = packaging.specifiers.SpecifierSet(
+                    pyproject["tool"]["poetry"]["dependencies"]["python"]
+                )
+
+    if version_set is None:
+        return
+
+    first_version, last_version = _get_python_version()
+    assert first_version.major == last_version.major
+
+    minimal_version = None
+    for minor in range(first_version.minor, last_version.minor + 1):
+        version = packaging.version.parse(f"{first_version.major}.{minor}")
+        if version_set.contains(version) and minimal_version is None:
+            minimal_version = version
+
+    if minimal_version is None:
+        return
 
     for pyproject_filename in _filenames("pyproject.toml"):
         with mra.EditTOML(pyproject_filename) as pyproject:
@@ -72,13 +88,13 @@ def main() -> None:
             if not python_version:
                 continue
 
-            match = _python_version_re.match(python_version)
-            if not match:
-                continue
-            min_python_version = packaging.version.parse(match.group(1))
-            max_python_version = packaging.version.parse(match.group(2))
-            if max_python_version.major == 4:
-                max_python_version = packaging.version.parse("3.13")
+            version_set = packaging.specifiers.SpecifierSet(python_version)
+            all_version = []
+
+            for minor in range(first_version.minor, last_version.minor + 1):
+                version = packaging.version.parse(f"{first_version.major}.{minor}")
+                if version_set.contains(version):
+                    all_version.append(version)
 
             has_classifiers = False
             has_poetry_classifiers = False
@@ -99,8 +115,8 @@ def main() -> None:
             classifiers = [c for c in classifiers if not c.startswith("Programming Language :: Python")]
             classifiers.append("Programming Language :: Python")
             classifiers.append("Programming Language :: Python :: 3")
-            for minor in range(min_python_version.minor, max_python_version.minor + 1):
-                classifiers.append(f"Programming Language :: Python :: {min_python_version.major}.{minor}")
+            for version in all_version:
+                classifiers.append(f"Programming Language :: Python :: {version}")
 
             classifier_item = tomlkit.array(sorted(classifiers, key=_natural_sort_key)).multiline(True)
             if has_poetry_classifiers:
