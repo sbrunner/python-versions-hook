@@ -139,7 +139,7 @@ def main() -> None:
     # on all .prospector.yaml files
     for prospector_filename in _filenames("*.prospector.yaml"):
         with mra.EditYAML(prospector_filename) as yaml:
-            yaml.setdefault("pypy", {}).setdefault("options", {})[
+            yaml.setdefault("mypy", {}).setdefault("options", {})[
                 "python-version"
             ] = f"{minimal_version.major}.{minimal_version.minor}"
             yaml.setdefault("ruff", {}).setdefault("options", {})[
