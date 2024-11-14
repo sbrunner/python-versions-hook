@@ -117,7 +117,7 @@ def main() -> None:
                 ] = [(f"--py{minimal_version.major}{minimal_version.minor}-plus")]
 
     if os.path.exists("jsonschema-gentypes.yaml"):
-        with mra.EditYaml("jsonschema-gentypes.yaml") as yaml:
+        with mra.EditYAML("jsonschema-gentypes.yaml") as yaml:
             yaml["python_version"] = f"{minimal_version.major}.{minimal_version.minor}"
 
     # on all .prospector.yaml files
