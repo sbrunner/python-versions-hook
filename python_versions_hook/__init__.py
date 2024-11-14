@@ -4,6 +4,7 @@ import argparse
 import os
 import re
 import subprocess
+from typing import Union
 
 import multi_repo_automation as mra
 import packaging.version
@@ -11,15 +12,15 @@ import tomlkit
 
 
 def _filenames(pattern) -> list[str]:
-    return subprocess.run(
-        ["git", "ls-files", pattern], check=True, stdout=subprocess.PIPE, encoding="utf-8"
+    return subprocess.run(  # noqa: S603
+        ["git", "ls-files", pattern], check=True, stdout=subprocess.PIPE, encoding="utf-8"  # noqa: S607
     ).stdout.splitlines()
 
 
 _digit = re.compile("([0-9]+)")
 
 
-def natural_sort_key(text):
+def _natural_sort_key(text: str) -> list[Union[int, str]]:
     return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
@@ -101,7 +102,7 @@ def main() -> None:
             for minor in range(min_python_version.minor, max_python_version.minor + 1):
                 classifiers.append(f"Programming Language :: Python :: {min_python_version.major}.{minor}")
 
-            classifier_item = tomlkit.array(sorted(classifiers, key=natural_sort_key)).multiline(True)
+            classifier_item = tomlkit.array(sorted(classifiers, key=_natural_sort_key)).multiline(True)
             if has_poetry_classifiers:
                 pyproject["tool"]["poetry"]["classifiers"] = classifier_item
             else:

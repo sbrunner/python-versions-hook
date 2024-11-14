@@ -463,13 +463,13 @@ files = [
 
 [[package]]
 name = "multi-repo-automation"
-version = "1.4.1"
+version = "1.4.2"
 description = "Library for automation updates on multiple repositories."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "multi_repo_automation-1.4.1-py3-none-any.whl", hash = "sha256:300f299fa4d1e11aa4865f0308afa3a1bcd54a467a2a88b8191166e2b51a9608"},
-    {file = "multi_repo_automation-1.4.1.tar.gz", hash = "sha256:d0f2ecc88489ec04b667790490827c5f09c9f21bc6615a41e85d71b41ebb69ac"},
+    {file = "multi_repo_automation-1.4.2-py3-none-any.whl", hash = "sha256:6ca5aac915db9f031bbe2a252b13997ee75da76dc0defeb84f8278a6ce26401f"},
+    {file = "multi_repo_automation-1.4.2.tar.gz", hash = "sha256:4d980fd7511b19f8b42d4ce2309dfb674c97a8e57d4a960933a8b74e71a32180"},
 ]
 
 [package.dependencies]
@@ -481,6 +481,7 @@ requests = "*"
 "ruamel.yaml" = "*"
 security_md = "*"
 tomlkit = "*"
+typing-extensions = "*"
 
 [[package]]
 name = "mypy"
@@ -647,13 +648,13 @@ files = [
 
 [[package]]
 name = "prospector-profile-utils"
-version = "1.10.1"
+version = "1.10.2"
 description = "Some utility Prospector profiles."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "prospector_profile_utils-1.10.1-py3-none-any.whl", hash = "sha256:56a98ff37b1f3f6b01957be237e4c36fca0e80c1f1f9a4c82e72d086eb60b066"},
-    {file = "prospector_profile_utils-1.10.1.tar.gz", hash = "sha256:252ee92937c1d07f3d0949180d4ee7dede18f164bb4bafc2a879393941dfd7cf"},
+    {file = "prospector_profile_utils-1.10.2-py3-none-any.whl", hash = "sha256:882ea53feac789b6f7f720123e37ba958979fdeb92861877203d98d2391a1636"},
+    {file = "prospector_profile_utils-1.10.2.tar.gz", hash = "sha256:7c2039bcc4de88caf047041e9123557c1d87a0a27f9870ca5611ca4d75bdc249"},
 ]
 
 [package.dependencies]
@@ -1241,4 +1242,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "c065d9a815d09d49417e00cf71ef5973989a554458653831737c755898093c73"
+content-hash = "6587877b1413334d25043472402dd0ab6f1d4cc8e8676edd2590e8629858437a"

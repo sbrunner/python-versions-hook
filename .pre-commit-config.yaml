@@ -51,7 +51,7 @@ repos:
           - --tool=ruff
         additional_dependencies:
           - prospector-profile-duplicated==1.5.0 # pypi
-          - prospector-profile-utils==1.10.1 # pypi
+          - prospector-profile-utils==1.10.2 # pypi
           - ruff==0.7.1 # pypi
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1
