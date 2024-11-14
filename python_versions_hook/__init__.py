@@ -24,12 +24,12 @@ def _natural_sort_key(text: str) -> list[Union[int, str]]:
     return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
-_python_version_re = re.compile(r"^>=(\d+\.\d+),<(\d+)\.(\d+)$")
+_python_version_re = re.compile(r"^>=(\d+\.\d+),<(\d+\.\d+)$")
 
 
 def main() -> None:
     """Update the copyright header of the files."""
-    args_parser = argparse.ArgumentParser("Update the python versions in all the files")
+    args_parser = argparse.ArgumentParser("Update the Python versions in all the files")
     args_parser.parse_args()
 
     minimal_version = packaging.version.parse("3.99")
