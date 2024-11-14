@@ -7,12 +7,20 @@ import subprocess
 
 import multi_repo_automation as mra
 import packaging.version
+import tomlkit
 
 
 def _filenames(pattern) -> list[str]:
     return subprocess.run(
         ["git", "ls-files", pattern], check=True, stdout=subprocess.PIPE, encoding="utf-8"
     ).stdout.splitlines()
+
+
+_digit = re.compile("([0-9]+)")
+
+
+def natural_sort_key(text):
+    return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
 _python_version_re = re.compile(r"^>=(\d+\.\d+),<(\d+)\.(\d+)$")
@@ -93,10 +101,11 @@ def main() -> None:
             for minor in range(min_python_version.minor, max_python_version.minor + 1):
                 classifiers.append(f"Programming Language :: Python :: {min_python_version.major}.{minor}")
 
+            classifier_item = tomlkit.array(sorted(classifiers, key=natural_sort_key)).multiline(True)
             if has_poetry_classifiers:
-                pyproject["tool"]["poetry"]["classifiers"] = sorted(classifiers)
+                pyproject["tool"]["poetry"]["classifiers"] = classifier_item
             else:
-                pyproject["project"]["classifiers"] = sorted(classifiers)
+                pyproject["project"]["classifiers"] = classifier_item
 
     if os.path.exists(".pre-commit-config.yaml"):
         with mra.EditPreCommitConfig() as pre_commit:
