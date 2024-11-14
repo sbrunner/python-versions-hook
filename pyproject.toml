@@ -17,7 +17,20 @@ description = "Update the Python versions"
 readme = "README.md"
 keywords = ["pre-commit"]
 license = "BSD-2-Clause"
-classifiers = ["Development Status :: 5 - Production/Stable", "Environment :: Console", "License :: OSI Approved :: BSD License", "Operating System :: OS Independent", "Programming Language :: Python", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.9", "Typing :: Typed"]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Console',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Typing :: Typed',
+]
 authors = ["Stéphane Brunner <stephane.brunner@gmail.com>"]
 repository = "https://github.com/sbrunner/python-versions-hook"
 
@@ -26,11 +39,11 @@ python-versions-hook = "python_versions_hook:main"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-multi-repo-automation = "==1.4.1"
+multi-repo-automation = "==1.4.2"
 
 [tool.poetry.group.dev.dependencies]
 prospector = { version = "1.13.1", extras = ["with_bandit", "with_mypy", "with_pyroma", "with_ruff"] }
-prospector-profile-utils = "1.10.1"
+prospector-profile-utils = "1.10.2"
 prospector-profile-duplicated = "1.5.0"
 
 [build-system]

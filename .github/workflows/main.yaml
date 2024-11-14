@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install --requirement=ci/requirements-pre-commit.txt
+      - run: python3 -m pip install --requirement=.github/requirements.txt
       - run: pip install --editable=.
 
       - uses: actions/cache@v4
@@ -58,15 +58,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: "!startsWith(github.event.head_commit.message, '[skip ci] ')"
-    needs: build
+    needs: pre-commit
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - run: python3 -m pip install --requirement=ci/requirements.txt
+          python-version: '3.11'
+      - run: python3 -m pip install --requirement=.github/requirements.txt
 
       - name: Init pypi
         run: |-
