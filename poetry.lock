@@ -609,13 +609,13 @@ type = ["mypy (>=1.11.2)"]
 
 [[package]]
 name = "prospector"
-version = "1.13.1"
+version = "1.13.3"
 description = "Prospector is a tool to analyse Python code by aggregating the result of other tools."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "prospector-1.13.1-py3-none-any.whl", hash = "sha256:119d5f6ba8cbdb19fb4dcb426deaf6b060410bdc1e96c106517ea65e71b5f225"},
-    {file = "prospector-1.13.1.tar.gz", hash = "sha256:b72bd657c82b1aed2cc7cfeceea847f248ba3755332878821b2c59441aa4b6a0"},
+    {file = "prospector-1.13.3-py3-none-any.whl", hash = "sha256:e7261c222ba54bc8aef8c9e31b2dcf5ed2a656c9b76fc0cceab294cd5ec3db6b"},
+    {file = "prospector-1.13.3.tar.gz", hash = "sha256:36ccb13f69aa27c5c4682afd4cc46219b9e0c80723e30dc64ff30c71f7b877a1"},
 ]
 
 [package.dependencies]
@@ -1291,4 +1291,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "da08da96cd62534ea012279db33a8601316bd9e9ec354ee4d4a145927f7acf5f"
+content-hash = "36a3ffabf97779575a647e28cb9ea80d3997f02dba6387191ea7a517c2544816"
