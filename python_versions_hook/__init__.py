@@ -15,7 +15,10 @@ import tomlkit
 
 def _filenames(pattern) -> list[str]:
     return subprocess.run(  # noqa: S603
-        ["git", "ls-files", pattern], check=True, stdout=subprocess.PIPE, encoding="utf-8"  # noqa: S607
+        ["git", "ls-files", pattern],
+        check=True,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",  # noqa: S607
     ).stdout.splitlines()
 
 
@@ -23,10 +26,14 @@ _digit = re.compile("([0-9]+)")
 
 
 def _natural_sort_key(text: str) -> list[Union[int, str]]:
-    return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
+    return [
+        int(value) if value.isdigit() else value.lower() for value in _digit.split(text)
+    ]
 
 
-def _get_python_version() -> tuple[packaging.version.Version, packaging.version.Version]:
+def _get_python_version() -> (
+    tuple[packaging.version.Version, packaging.version.Version]
+):
     first_version = packaging.version.parse("3.0")
     data = pkgutil.get_data("python_versions_hook", ".python-version")
     assert data is not None
@@ -43,8 +50,12 @@ def main() -> None:
     for pyproject_filename in _filenames("pyproject.toml"):
         with mra.EditTOML(pyproject_filename) as pyproject:
             if "requires-python" in pyproject.get("project", {}):
-                version_set = packaging.specifiers.SpecifierSet(pyproject["project"]["requires-python"])
-            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get("dependencies", {}):
+                version_set = packaging.specifiers.SpecifierSet(
+                    pyproject["project"]["requires-python"]
+                )
+            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
+                "dependencies", {}
+            ):
                 version_set = packaging.specifiers.SpecifierSet(
                     pyproject["tool"]["poetry"]["dependencies"]["python"]
                 )
@@ -75,14 +86,16 @@ def main() -> None:
                 ]
 
             if "target-version" in pyproject.get("tool", {}).get("ruff", {}):
-                pyproject["tool"]["ruff"][
-                    "target-version"
-                ] = f"py{minimal_version.major}{minimal_version.minor}"
+                pyproject["tool"]["ruff"]["target-version"] = (
+                    f"py{minimal_version.major}{minimal_version.minor}"
+                )
 
             python_version = ""
             if "requires-python" in pyproject.get("project", {}):
                 python_version = pyproject["project"]["requires-python"]
-            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get("dependencies", {}):
+            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
+                "dependencies", {}
+            ):
                 python_version = pyproject["tool"]["poetry"]["dependencies"]["python"]
 
             if not python_version:
@@ -102,9 +115,11 @@ def main() -> None:
             if "classifiers" in pyproject.get("project", {}):
                 has_classifiers = True
                 classifiers = pyproject["project"]["classifiers"]
-            elif "classifiers" in pyproject.get("tool", {}).get("poetry", {}) and "python" in pyproject.get(
-                "tool", {}
-            ).get("poetry", {}).get("dependencies", {}):
+            elif "classifiers" in pyproject.get("tool", {}).get(
+                "poetry", {}
+            ) and "python" in pyproject.get("tool", {}).get("poetry", {}).get(
+                "dependencies", {}
+            ):
                 has_classifiers = True
                 has_poetry_classifiers = True
                 classifiers = pyproject["tool"]["poetry"]["classifiers"]
@@ -112,13 +127,19 @@ def main() -> None:
             if not has_classifiers:
                 continue
 
-            classifiers = [c for c in classifiers if not c.startswith("Programming Language :: Python")]
+            classifiers = [
+                c
+                for c in classifiers
+                if not c.startswith("Programming Language :: Python")
+            ]
             classifiers.append("Programming Language :: Python")
             classifiers.append("Programming Language :: Python :: 3")
             for version in all_version:
                 classifiers.append(f"Programming Language :: Python :: {version}")
 
-            classifier_item = tomlkit.array(sorted(classifiers, key=_natural_sort_key)).multiline(True)
+            classifier_item = tomlkit.array(
+                sorted(classifiers, key=_natural_sort_key)
+            ).multiline(True)
             if has_poetry_classifiers:
                 pyproject["tool"]["poetry"]["classifiers"] = classifier_item
             else:
@@ -128,9 +149,11 @@ def main() -> None:
         with mra.EditPreCommitConfig() as pre_commit:
             if "https://github.com/asottile/pyupgrade" in pre_commit.repos_hooks:
                 print(pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"])
-                pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"]["hooks"][0][
-                    "args"
-                ] = [(f"--py{minimal_version.major}{minimal_version.minor}-plus")]
+                pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"][
+                    "hooks"
+                ][0]["args"] = [
+                    (f"--py{minimal_version.major}{minimal_version.minor}-plus")
+                ]
 
     if os.path.exists("jsonschema-gentypes.yaml"):
         with mra.EditYAML("jsonschema-gentypes.yaml") as yaml:
@@ -139,9 +162,9 @@ def main() -> None:
     # on all .prospector.yaml files
     for prospector_filename in _filenames("*.prospector.yaml"):
         with mra.EditYAML(prospector_filename) as yaml:
-            yaml.setdefault("mypy", {}).setdefault("options", {})[
-                "python-version"
-            ] = f"{minimal_version.major}.{minimal_version.minor}"
-            yaml.setdefault("ruff", {}).setdefault("options", {})[
-                "target-version"
-            ] = f"py{minimal_version.major}{minimal_version.minor}"
+            yaml.setdefault("mypy", {}).setdefault("options", {})["python-version"] = (
+                f"{minimal_version.major}.{minimal_version.minor}"
+            )
+            yaml.setdefault("ruff", {}).setdefault("options", {})["target-version"] = (
+                f"py{minimal_version.major}{minimal_version.minor}"
+            )
