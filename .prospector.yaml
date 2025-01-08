@@ -4,6 +4,7 @@ inherits:
   - utils:unsafe
   - duplicated
 
+  - utils:fix
 mypy:
   options:
     python-version: '3.9'
