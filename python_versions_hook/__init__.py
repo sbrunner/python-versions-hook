@@ -31,9 +31,9 @@ def _natural_sort_key(text: str) -> list[Union[int, str]]:
     ]
 
 
-def _get_python_version() -> (
-    tuple[packaging.version.Version, packaging.version.Version]
-):
+def _get_python_version() -> tuple[
+    packaging.version.Version, packaging.version.Version
+]:
     first_version = packaging.version.parse("3.0")
     data = pkgutil.get_data("python_versions_hook", ".python-version")
     assert data is not None
