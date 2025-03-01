@@ -1,10 +1,10 @@
 """Python versions hooks."""
 
 import argparse
-import os
 import pkgutil
 import re
 import subprocess
+from pathlib import Path
 from typing import Union
 
 import multi_repo_automation as mra
@@ -13,13 +13,16 @@ import packaging.version
 import tomlkit
 
 
-def _filenames(pattern) -> list[str]:
-    return subprocess.run(  # noqa: S603
-        ["git", "ls-files", pattern],
-        check=True,
-        stdout=subprocess.PIPE,
-        encoding="utf-8",  # noqa: S607
-    ).stdout.splitlines()
+def _filenames(pattern: str) -> list[Path]:
+    return [
+        Path(file)
+        for file in subprocess.run(
+            ["git", "ls-files", pattern],
+            check=True,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+        ).stdout.splitlines()
+    ]
 
 
 _digit = re.compile("([0-9]+)")
@@ -32,7 +35,8 @@ def _natural_sort_key(text: str) -> list[Union[int, str]]:
 
 
 def _get_python_version() -> tuple[
-    packaging.version.Version, packaging.version.Version
+    packaging.version.Version,
+    packaging.version.Version,
 ]:
     first_version = packaging.version.parse("3.0")
     data = pkgutil.get_data("python_versions_hook", ".python-version")
@@ -51,13 +55,14 @@ def main() -> None:
         with mra.EditTOML(pyproject_filename) as pyproject:
             if "requires-python" in pyproject.get("project", {}):
                 version_set = packaging.specifiers.SpecifierSet(
-                    pyproject["project"]["requires-python"]
+                    pyproject["project"]["requires-python"],
                 )
             elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-                "dependencies", {}
+                "dependencies",
+                {},
             ):
                 version_set = packaging.specifiers.SpecifierSet(
-                    pyproject["tool"]["poetry"]["dependencies"]["python"]
+                    pyproject["tool"]["poetry"]["dependencies"]["python"],
                 )
 
     if version_set is None:
@@ -82,7 +87,7 @@ def main() -> None:
 
             if "target-version" in pyproject.get("tool", {}).get("black", {}):
                 pyproject["tool"]["black"]["target-version"] = [
-                    f"py{minimal_version.major}{minimal_version.minor}"
+                    f"py{minimal_version.major}{minimal_version.minor}",
                 ]
 
             if "target-version" in pyproject.get("tool", {}).get("ruff", {}):
@@ -94,7 +99,8 @@ def main() -> None:
             if "requires-python" in pyproject.get("project", {}):
                 python_version = pyproject["project"]["requires-python"]
             elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-                "dependencies", {}
+                "dependencies",
+                {},
             ):
                 python_version = pyproject["tool"]["poetry"]["dependencies"]["python"]
 
@@ -116,9 +122,11 @@ def main() -> None:
                 has_classifiers = True
                 classifiers = pyproject["project"]["classifiers"]
             elif "classifiers" in pyproject.get("tool", {}).get(
-                "poetry", {}
+                "poetry",
+                {},
             ) and "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-                "dependencies", {}
+                "dependencies",
+                {},
             ):
                 has_classifiers = True
                 has_poetry_classifiers = True
@@ -138,25 +146,27 @@ def main() -> None:
                 classifiers.append(f"Programming Language :: Python :: {version}")
 
             classifier_item = tomlkit.array(
-                sorted(classifiers, key=_natural_sort_key)
-            ).multiline(True)
+                sorted(classifiers, key=_natural_sort_key),
+            ).multiline(multiline=True)
             if has_poetry_classifiers:
                 pyproject["tool"]["poetry"]["classifiers"] = classifier_item
             else:
                 pyproject["project"]["classifiers"] = classifier_item
 
-    if os.path.exists(".pre-commit-config.yaml"):
+    pre_commit_config_path = Path(".pre-commit-config.yaml")
+    if pre_commit_config_path.exists():
         with mra.EditPreCommitConfig() as pre_commit:
             if "https://github.com/asottile/pyupgrade" in pre_commit.repos_hooks:
                 print(pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"])
                 pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"][
                     "hooks"
                 ][0]["args"] = [
-                    (f"--py{minimal_version.major}{minimal_version.minor}-plus")
+                    (f"--py{minimal_version.major}{minimal_version.minor}-plus"),
                 ]
 
-    if os.path.exists("jsonschema-gentypes.yaml"):
-        with mra.EditYAML("jsonschema-gentypes.yaml") as yaml:
+    jsonschema_gentypes_path = Path("jsonschema-gentypes.yaml")
+    if jsonschema_gentypes_path.exists():
+        with mra.EditYAML(jsonschema_gentypes_path) as yaml:
             yaml["python_version"] = f"{minimal_version.major}.{minimal_version.minor}"
 
     # on all .prospector.yaml files
