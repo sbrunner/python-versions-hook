@@ -466,19 +466,20 @@ files = [
 
 [[package]]
 name = "multi-repo-automation"
-version = "1.5.0"
+version = "1.7.0"
 description = "Library for automation updates on multiple repositories."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "multi_repo_automation-1.5.0-py3-none-any.whl", hash = "sha256:60590e3a0fd5c67bb1525340d0f25f02d4e7304576cd7cfc596f182ec343220c"},
-    {file = "multi_repo_automation-1.5.0.tar.gz", hash = "sha256:a64fa7a7134eaa42c3bf5cfc7cac3d143cfa0607cb06c3da9c77edc23e067f2b"},
+    {file = "multi_repo_automation-1.7.0-py3-none-any.whl", hash = "sha256:f49c49bf94d4b24dfd85f37583a7b06dba2091cf43357c15a83c6c2ef268cea1"},
+    {file = "multi_repo_automation-1.7.0.tar.gz", hash = "sha256:8f88b655b859c5b474226ff3eaed78c2d24ec6f5a930bb812646876d36a533b8"},
 ]
 
 [package.dependencies]
 configupdater = "*"
 identify = "*"
 json5 = "*"
+packaging = "*"
 PyYAML = "*"
 requests = "*"
 "ruamel.yaml" = "*"
@@ -1292,4 +1293,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "7f0dd468a3fe1929df04873de80ca272a266df719cc3fabaf41b2cb83f991097"
+content-hash = "d6c93f9aeddfc74ec946950405812244e7b47d715822e2f62f243518a6fd135c"
