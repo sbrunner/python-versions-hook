@@ -39,7 +39,7 @@ python-versions-hook = "python_versions_hook:main"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-multi-repo-automation = "==1.5.0"
+multi-repo-automation = "==1.7.0"
 packaging = "==24.2"
 
 [tool.poetry.group.dev.dependencies]
