@@ -33,7 +33,7 @@ repos:
       - id: mixed-line-ending
       - id: check-json
   - repo: https://github.com/PyCQA/prospector
-    rev: v1.15.2
+    rev: v1.15.3
     hooks:
       - id: prospector
         args:
