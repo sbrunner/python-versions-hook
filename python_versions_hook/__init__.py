@@ -16,8 +16,8 @@ import tomlkit
 def _filenames(pattern: str) -> list[Path]:
     return [
         Path(file)
-        for file in subprocess.run(
-            ["git", "ls-files", pattern],
+        for file in subprocess.run(  # noqa: S603
+            ["git", "ls-files", pattern],  # noqa: S607
             check=True,
             stdout=subprocess.PIPE,
             encoding="utf-8",
