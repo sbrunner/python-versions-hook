@@ -115,6 +115,9 @@ def main() -> None:
                 if version_set.contains(version):
                     all_version.append(version)
 
+            if "project" in pyproject:
+                pyproject["project"]["requires-python"] = f">={minimal_version}"
+
             has_classifiers = False
             has_poetry_classifiers = False
             classifiers = []
