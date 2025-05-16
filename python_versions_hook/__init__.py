@@ -5,9 +5,10 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional, Union
 
 import multi_repo_automation as mra
+import packaging.requirements
 import packaging.specifiers
 import packaging.version
 import tomlkit
@@ -16,7 +17,7 @@ import tomlkit
 def _filenames(pattern: str) -> list[Path]:
     return [
         Path(file)
-        for file in subprocess.run(  # noqa: S603
+        for file in subprocess.run(  # noqa: S603 # nosec
             ["git", "ls-files", pattern],  # noqa: S607
             check=True,
             stdout=subprocess.PIPE,
@@ -149,12 +150,14 @@ def main() -> None:
                 classifiers.append(f"Programming Language :: Python :: {version}")
 
             classifier_item = tomlkit.array(
-                sorted(classifiers, key=_natural_sort_key),
+                sorted(classifiers, key=_natural_sort_key),  # type: ignore[arg-type]
             ).multiline(multiline=True)
             if has_poetry_classifiers:
                 pyproject["tool"]["poetry"]["classifiers"] = classifier_item
             else:
                 pyproject["project"]["classifiers"] = classifier_item
+
+            _tweak_dependency_version(pyproject)
 
     pre_commit_config_path = Path(".pre-commit-config.yaml")
     if pre_commit_config_path.exists():
@@ -181,3 +184,130 @@ def main() -> None:
             yaml.setdefault("ruff", {}).setdefault("options", {})["target-version"] = (
                 f"py{minimal_version.major}{minimal_version.minor}"
             )
+
+
+def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
+    """Tweak the dependency version in pyproject.toml."""
+
+    plugin_config = pyproject.get("tool", {}).get("tweak-poetry-dependencies-versions")
+    if plugin_config is None:
+        plugin_config = pyproject.get("tool", {}).get(
+            "poetry-plugin-tweak-dependencies-version",
+        )
+    if plugin_config is None:
+        return
+
+    extras = pyproject.get("tool", {}).get("poetry", {}).get("extras", {})
+    new_dependencies = {}
+    for dependency_name, dependency_config in (
+        pyproject.get("tool", {}).get("poetry", {}).get("dependencies", {}).items()
+    ):
+        if isinstance(dependency_config, str):
+            dependency_config = {"version": dependency_config}  # noqa: PLW2901
+
+        modifier = plugin_config.get(dependency_name)
+        if modifier is None:
+            modifier = plugin_config.get("default", "full")
+
+        new_version = {
+            "version": dependency_config.get("version"),
+            "in_extras": [],
+            "use_extras": dependency_config.get("extras", []),
+            "modifier": modifier,
+        }
+        if dependency_config.get("optional", False):
+            for extra_name, packages in extras.items():
+                if dependency_name in packages:
+                    new_version["in_extras"].append(extra_name)
+
+        new_dependencies[dependency_name] = new_version
+
+    all_extras = []
+    for dependency_config in new_dependencies.values():
+        all_extras.extend(dependency_config["in_extras"])
+
+    # Parse current dependencies
+    pyproject.setdefault("project", {})["dependencies"] = _replace_dependencies(
+        pyproject.get("project", {}).get("dependencies", []),
+        new_dependencies,
+        None,
+    )
+    for extra_name in all_extras:
+        pyproject["project"].setdefault("optional-dependencies", {})[extra_name] = (
+            _replace_dependencies(
+                pyproject.get("project", {})
+                .get("optional-dependencies", {})
+                .get(extra_name, []),
+                new_dependencies,
+                extra_name,
+            )
+        )
+
+
+def _replace_dependencies(
+    current_dependencies: list[str],
+    poetry_dependencies: dict[str, dict[str, Any]],
+    extra: Optional[str],
+) -> list[str]:
+    """Replace the dependencies in the pyproject.toml file."""
+    dependencies = {}
+    for dependency in current_dependencies:
+        requirement = packaging.requirements.Requirement(dependency)
+        dependencies[requirement.name] = requirement
+
+    for dependency_name, dependency_config in poetry_dependencies.items():
+        if extra is None and dependency_config["in_extras"]:
+            continue
+        if extra is not None and extra not in dependency_config["in_extras"]:
+            continue
+        requirement = packaging.requirements.Requirement(dependency_name)
+        requirement.extras = dependency_config["use_extras"]
+        if dependency_config["modifier"] in ["major", "minor", "patch"]:
+            version_split = [
+                int(part) for part in dependency_config["version"].split(".")
+            ]
+            version_min = None
+            version_max = None
+            if dependency_config["modifier"] == "major":
+                version_min = [version_split[0]]
+                version_max = [version_split[0] + 1]
+            elif dependency_config["modifier"] == "minor":
+                version_min = version_split[0:2]
+                if len(version_min) == 2:
+                    version_max = [version_min[0], version_min[1] + 1]
+                else:
+                    version_min = version_split
+                    version_max = version_split
+            elif dependency_config["modifier"] == "patch":
+                version_min = version_split[0:3]
+                if len(version_min) == 3:
+                    version_max = [
+                        version_min[0],
+                        version_min[1],
+                        version_min[2] + 1,
+                    ]
+                else:
+                    version_max = version_min
+            if version_min is not None and version_max is not None:
+                if version_min == version_max:
+                    requirement.specifier = packaging.specifiers.SpecifierSet(
+                        f"== {'.'.join(map(str, version_min))}",
+                    )
+                else:
+                    requirement.specifier = packaging.specifiers.SpecifierSet(
+                        f">={'.'.join(map(str, version_min))},<{'.'.join(map(str, version_max))}",
+                    )
+        elif dependency_config["modifier"] == "full":
+            version = dependency_config["version"]
+            requirement.specifier = packaging.specifiers.SpecifierSet(
+                f"== {version}",
+            )
+        elif dependency_config["modifier"] != "present":
+            version = dependency_config["modifier"]
+            requirement.specifier = packaging.specifiers.SpecifierSet(
+                f"== {version}",
+            )
+
+        dependencies[dependency_name] = requirement
+
+    return [str(requirement) for requirement in dependencies.values()]
