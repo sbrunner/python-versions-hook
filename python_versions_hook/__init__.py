@@ -260,12 +260,25 @@ def _replace_dependencies(
             continue
         if extra is not None and extra not in dependency_config["in_extras"]:
             continue
+        if dependency_name == "python":
+            # Skip python dependency
+            continue
         requirement = packaging.requirements.Requirement(dependency_name)
         requirement.extras = dependency_config["use_extras"]
         if dependency_config["modifier"] in ["major", "minor", "patch"]:
-            version_split = [
-                int(part) for part in dependency_config["version"].split(".")
-            ]
+            try:
+                version_split = [
+                    int(part) for part in dependency_config["version"].split(".")
+                ]
+            except ValueError:
+                # If the version is not a valid version, skip it
+                print(
+                    "Warning: Invalid version for dependency %s: %s",
+                    dependency_name,
+                    dependency_config["version"],
+                )
+                continue
+
             version_min = None
             version_max = None
             if dependency_config["modifier"] == "major":
