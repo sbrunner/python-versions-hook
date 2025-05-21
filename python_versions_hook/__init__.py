@@ -30,9 +30,7 @@ _digit = re.compile("([0-9]+)")
 
 
 def _natural_sort_key(text: str) -> list[Union[int, str]]:
-    return [
-        int(value) if value.isdigit() else value.lower() for value in _digit.split(text)
-    ]
+    return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
 def _get_python_version() -> tuple[
@@ -139,11 +137,7 @@ def main() -> None:
             if not has_classifiers:
                 continue
 
-            classifiers = [
-                c
-                for c in classifiers
-                if not c.startswith("Programming Language :: Python")
-            ]
+            classifiers = [c for c in classifiers if not c.startswith("Programming Language :: Python")]
             classifiers.append("Programming Language :: Python")
             classifiers.append("Programming Language :: Python :: 3")
             for version in all_version:
@@ -164,9 +158,9 @@ def main() -> None:
         with mra.EditPreCommitConfig() as pre_commit:
             if "https://github.com/asottile/pyupgrade" in pre_commit.repos_hooks:
                 print(pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"])
-                pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"][
-                    "hooks"
-                ][0]["args"] = [
+                pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"]["hooks"][0][
+                    "args"
+                ] = [
                     (f"--py{minimal_version.major}{minimal_version.minor}-plus"),
                 ]
 
@@ -233,14 +227,10 @@ def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
         None,
     )
     for extra_name in all_extras:
-        pyproject["project"].setdefault("optional-dependencies", {})[extra_name] = (
-            _replace_dependencies(
-                pyproject.get("project", {})
-                .get("optional-dependencies", {})
-                .get(extra_name, []),
-                new_dependencies,
-                extra_name,
-            )
+        pyproject["project"].setdefault("optional-dependencies", {})[extra_name] = _replace_dependencies(
+            pyproject.get("project", {}).get("optional-dependencies", {}).get(extra_name, []),
+            new_dependencies,
+            extra_name,
         )
 
 
@@ -267,9 +257,7 @@ def _replace_dependencies(
         requirement.extras = dependency_config["use_extras"]
         if dependency_config["modifier"] in ["major", "minor", "patch"]:
             try:
-                version_split = [
-                    int(part) for part in dependency_config["version"].split(".")
-                ]
+                version_split = [int(part) for part in dependency_config["version"].split(".")]
             except ValueError:
                 # If the version is not a valid version, skip it
                 print(
