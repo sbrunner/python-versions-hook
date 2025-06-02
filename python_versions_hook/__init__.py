@@ -306,7 +306,7 @@ def _replace_dependencies(
         elif dependency_config["modifier"] != "present":
             version = dependency_config["modifier"]
             requirement.specifier = packaging.specifiers.SpecifierSet(
-                f"== {version}",
+                version,
             )
 
         dependencies[dependency_name] = requirement
