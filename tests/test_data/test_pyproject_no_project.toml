@@ -1,0 +1,24 @@
+[project]
+dependencies = []
+
+[tool.poetry.dependencies]
+pkg_major = '1.2.3.4'
+pkg_minor = '1.2.3.4'
+pkg_patch = '1.2.3.4'
+pkg_patch_error = '1.2'
+pkg_present = '1.2.3.4'
+pkg_no = '1.2.3'
+pkg_set = '1.2.3'
+pkg_extra = { version = '1.2.3', extras = ["extra"] }
+pkg_in_extra = { version = '1.2.3', optional = true }
+
+[tool.poetry.extras]
+extra = ['pkg_in_extra']
+
+[tool.tweak-poetry-dependencies-versions]
+pkg_major = 'major'
+pkg_minor = 'minor'
+pkg_patch = 'patch'
+pkg_patch_error = 'patch'
+pkg_present = 'present'
+pkg_set = ">=1.0.0,<3.0.0"

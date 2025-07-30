@@ -11,6 +11,7 @@ import multi_repo_automation as mra
 import packaging.requirements
 import packaging.specifiers
 import packaging.version
+import requests
 import tomlkit
 
 
@@ -180,8 +181,58 @@ def main() -> None:
             )
 
 
+# beaker (>=1.13.0,<2.0.0)
+_POETRY_ADD_PACKAGE_REGEX = re.compile(r"([a-z][a-z0-9_-]*) \(>=([0-9][0-9\.a-z-]+),<([0-9][0-9\.a-z-]+)\)$")
+
+
 def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
     """Tweak the dependency version in pyproject.toml."""
+
+    all_poetry_deps = set(pyproject.get("tool", {}).get("poetry", {}).get("dependencies", {}).keys())
+    for group_deps in (
+        pyproject.get("tool", {})
+        .get("poetry", {})
+        .get(
+            "group",
+            {},
+        )
+        .values()
+    ):
+        if isinstance(group_deps, dict):
+            all_poetry_deps.update(group_deps.get("dependencies", {}).keys())
+
+    current_project_dependencies = pyproject.get("project", {}).get("dependencies", [])
+    for full_dependencies in current_project_dependencies:
+        if isinstance(full_dependencies, str):
+            match = _POETRY_ADD_PACKAGE_REGEX.match(full_dependencies)
+            if match and match.group(1) not in all_poetry_deps:
+                # Get the latest version that match the constraint
+                try:
+                    min_version = packaging.version.parse(match.group(2))
+                    max_version = packaging.version.parse(match.group(3))
+                    pypi_response = requests.get(f"https://pypi.org/pypi/{match.group(1)}/json", timeout=30)
+                    pypi_response.raise_for_status()
+                    package_info = pypi_response.json()
+                    releases = package_info.get("releases", {})
+                    valid_versions = [
+                        v
+                        for v in releases
+                        if packaging.version.parse(v) >= min_version
+                        and packaging.version.parse(v) < max_version
+                    ]
+                    valid_versions.sort(key=packaging.version.parse)
+                    if valid_versions:
+                        latest_version = valid_versions[-1]
+                        pyproject.setdefault("tool", {}).setdefault("poetry", {}).setdefault(
+                            "dependencies",
+                            {},
+                        )[match.group(1)] = latest_version
+                except requests.RequestException as e:
+                    print(f"Error fetching package info for {match.group(1)}: {e}")
+                except packaging.version.InvalidVersion as e:
+                    print(f"Invalid version for {match.group(1)}: {e}")
+                except Exception as e:  # pylint: disable=broad-except
+                    print(f"Unexpected error for {match.group(1)}: {e}")
 
     plugin_config = pyproject.get("tool", {}).get("tweak-poetry-dependencies-versions")
     if plugin_config is None:
