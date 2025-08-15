@@ -21,7 +21,7 @@ def test_tweak_dependency_version_add():
                 "pkg_no==1.2.3",
                 "pkg_extra[extra]==1.2.3",
                 "pkg_set<3.0.0,>=1.0.0",
-            ]
+            ],
         )
 
 
@@ -41,7 +41,7 @@ def test_tweak_dependency_version_replace():
                 "pkg_no==1.2.3",
                 "pkg_extra[extra]==1.2.3",
                 "pkg_set<3.0.0,>=1.0.0",
-            ]
+            ],
         )
 
 
