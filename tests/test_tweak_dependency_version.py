@@ -6,46 +6,42 @@ import multi_repo_automation as mra
 from python_versions_hook import _tweak_dependency_version
 
 
-def test_tweak_dependency_version_add():
+def test_tweak_dependency_version_add() -> None:
     with mra.EditTOML(Path(__file__).parent / "test_data" / "test_pyproject_no_project.toml") as edit:
         _tweak_dependency_version(edit)
 
         assert edit["project"]["optional-dependencies"]["extra"] == ["pkg_in_extra==1.2.3"]
-        assert set(edit["project"]["dependencies"]) == set(
-            [
-                "pkg_major<2,>=1",
-                "pkg_minor<1.3,>=1.2",
-                "pkg_patch<1.2.4,>=1.2.3",
-                "pkg_patch_error==1.2",
-                "pkg_present",
-                "pkg_no==1.2.3",
-                "pkg_extra[extra]==1.2.3",
-                "pkg_set<3.0.0,>=1.0.0",
-            ],
-        )
+        assert set(edit["project"]["dependencies"]) == {
+            "pkg_major<2,>=1",
+            "pkg_minor<1.3,>=1.2",
+            "pkg_patch<1.2.4,>=1.2.3",
+            "pkg_patch_error==1.2",
+            "pkg_present",
+            "pkg_no==1.2.3",
+            "pkg_extra[extra]==1.2.3",
+            "pkg_set<3.0.0,>=1.0.0",
+        }
 
 
-def test_tweak_dependency_version_replace():
+def test_tweak_dependency_version_replace() -> None:
     with mra.EditTOML(Path(__file__).parent / "test_data" / "test_pyproject.toml") as edit:
         _tweak_dependency_version(edit)
 
         assert edit["project"]["optional-dependencies"]["extra"] == ["pkg_in_extra==1.2.3"]
-        assert set(edit["project"]["dependencies"]) == set(
-            [
-                "pkg_only==2.3.4",
-                "pkg_major<2,>=1",
-                "pkg_minor<1.3,>=1.2",
-                "pkg_patch<1.2.4,>=1.2.3",
-                "pkg_patch_error==1.2",
-                "pkg_present",
-                "pkg_no==1.2.3",
-                "pkg_extra[extra]==1.2.3",
-                "pkg_set<3.0.0,>=1.0.0",
-            ],
-        )
+        assert set(edit["project"]["dependencies"]) == {
+            "pkg_only==2.3.4",
+            "pkg_major<2,>=1",
+            "pkg_minor<1.3,>=1.2",
+            "pkg_patch<1.2.4,>=1.2.3",
+            "pkg_patch_error==1.2",
+            "pkg_present",
+            "pkg_no==1.2.3",
+            "pkg_extra[extra]==1.2.3",
+            "pkg_set<3.0.0,>=1.0.0",
+        }
 
 
-def test_tweak_dependency_version_poetry_add():
+def test_tweak_dependency_version_poetry_add() -> None:
     """Test that function does nothing when no configuration is present."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -65,7 +61,7 @@ default = "present"
             assert "beaker" in edit["tool"]["poetry"]["dependencies"]
 
 
-def test_tweak_dependency_version_no_config():
+def test_tweak_dependency_version_no_config() -> None:
     """Test that function does nothing when no configuration is present."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -84,7 +80,7 @@ requests = "2.25.1"
             assert edit.get("project", {}).get("dependencies", []) == original_deps
 
 
-def test_tweak_dependency_version_legacy_config_name():
+def test_tweak_dependency_version_legacy_config_name() -> None:
     """Test that function works with legacy configuration name."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -104,7 +100,7 @@ requests = "major"
             assert "requests<3,>=2" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_major_modifier():
+def test_tweak_dependency_version_major_modifier() -> None:
     """Test major version modifier."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -124,7 +120,7 @@ test_pkg = "major"
             assert "test_pkg<3,>=2" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_minor_modifier():
+def test_tweak_dependency_version_minor_modifier() -> None:
     """Test minor version modifier."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -144,7 +140,7 @@ test_pkg = "minor"
             assert "test_pkg<2.6,>=2.5" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_patch_modifier():
+def test_tweak_dependency_version_patch_modifier() -> None:
     """Test patch version modifier."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -164,7 +160,7 @@ test_pkg = "patch"
             assert "test_pkg<2.5.4,>=2.5.3" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_full_modifier():
+def test_tweak_dependency_version_full_modifier() -> None:
     """Test full version modifier (exact version)."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -184,7 +180,7 @@ test_pkg = "full"
             assert "test_pkg==2.5.3" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_present_modifier():
+def test_tweak_dependency_version_present_modifier() -> None:
     """Test present modifier (no version constraint)."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -207,7 +203,7 @@ test_pkg = "present"
             assert len(deps_without_constraints) == 1
 
 
-def test_tweak_dependency_version_custom_constraint():
+def test_tweak_dependency_version_custom_constraint() -> None:
     """Test custom version constraint."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -227,7 +223,7 @@ test_pkg = ">=2.0.0,<3.0.0"
             assert "test_pkg<3.0.0,>=2.0.0" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_with_extras():
+def test_tweak_dependency_version_with_extras() -> None:
     """Test dependency with extras."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -250,7 +246,7 @@ test_pkg = "major"
             assert "test_pkg[dev,test]<3,>=2" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_optional_dependency():
+def test_tweak_dependency_version_optional_dependency() -> None:
     """Test optional dependency handling."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -278,7 +274,7 @@ test_pkg = "major"
             assert "test_pkg<3,>=2" not in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_default_modifier():
+def test_tweak_dependency_version_default_modifier() -> None:
     """Test default modifier when none specified."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -299,7 +295,7 @@ default = "major"
             assert "test_pkg<3,>=2" in edit["project"]["dependencies"]
 
 
-def test_tweak_dependency_version_invalid_version():
+def test_tweak_dependency_version_invalid_version() -> None:
     """Test handling of invalid version strings."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
@@ -320,7 +316,7 @@ test_pkg = "major"
             assert edit["project"]["dependencies"] == []
 
 
-def test_tweak_dependency_version_python_dependency_skipped():
+def test_tweak_dependency_version_python_dependency_skipped() -> None:
     """Test that python dependency is skipped."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
         f.write("""
