@@ -231,7 +231,7 @@ def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
                     print(f"Error fetching package info for {match.group(1)}: {e}")
                 except packaging.version.InvalidVersion as e:
                     print(f"Invalid version for {match.group(1)}: {e}")
-                except Exception as e:  # pylint: disable=broad-except
+                except Exception as e:  # pylint: disable=broad-except # noqa: BLE001
                     print(f"Unexpected error for {match.group(1)}: {e}")
 
     plugin_config = pyproject.get("tool", {}).get("tweak-poetry-dependencies-versions")
