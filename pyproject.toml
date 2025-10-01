@@ -28,8 +28,8 @@ packaging = "==25.0"
 prospector = { version = "1.17.3", extras = ["with_bandit", "with_mypy", "with_pyroma", "with_ruff"] }
 prospector-profile-utils = "1.26.5"
 prospector-profile-duplicated = "1.10.5"
-pytest = "8.4.1"
-types-requests = "2.32.4.20250809"
+pytest = "8.4.2"
+types-requests = "2.32.4.20250913"
 
 [tool.tweak-poetry-dependencies-versions]
 default = "present"
