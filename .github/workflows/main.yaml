@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - run: python3 -m pip install --requirement=.github/requirements.txt
       - run: pip install --editable=.
 
@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - run: python3 -m pip install --requirement=.github/requirements.txt
 
       - run: poetry install --all-extras --all-groups
@@ -108,7 +108,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - run: python3 -m pip install --requirement=.github/requirements.txt
 
       - name: Init pypi
