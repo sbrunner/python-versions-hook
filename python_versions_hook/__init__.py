@@ -45,25 +45,35 @@ def _get_python_version() -> tuple[
     return first_version, last_version
 
 
+def _get_python_specifiers_version(pyproject: mra.EditTOML) -> Optional[packaging.specifiers.SpecifierSet]:
+    config = pyproject.get("tool", {}).get("python-versions-hook", {})
+    keep_requires_python = config.get("keep-requires-python", False)
+    use_requires_python = keep_requires_python and "requires-python" in pyproject.get("project", {})
+    if not use_requires_python and "python" in pyproject.get("tool", {}).get("poetry", {}).get(
+        "dependencies",
+        {},
+    ):
+        return packaging.specifiers.SpecifierSet(
+            pyproject["tool"]["poetry"]["dependencies"]["python"],
+        )
+    if "requires-python" in pyproject.get("project", {}):
+        return packaging.specifiers.SpecifierSet(
+            pyproject["project"]["requires-python"],
+        )
+    return None
+
+
 def main() -> None:
-    """Update the copyright header of the files."""
-    args_parser = argparse.ArgumentParser("Update the Python versions in all the files")
+    """Python version configurations in all project files."""
+    args_parser = argparse.ArgumentParser("Update the Python versions in all the project files")
     args_parser.parse_args()
 
     version_set = None
     for pyproject_filename in _filenames("pyproject.toml"):
         with mra.EditTOML(pyproject_filename) as pyproject:
-            if "requires-python" in pyproject.get("project", {}):
-                version_set = packaging.specifiers.SpecifierSet(
-                    pyproject["project"]["requires-python"],
-                )
-            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-                "dependencies",
-                {},
-            ):
-                version_set = packaging.specifiers.SpecifierSet(
-                    pyproject["tool"]["poetry"]["dependencies"]["python"],
-                )
+            version_set = _get_python_specifiers_version(pyproject)
+            if version_set is not None:
+                break
 
     if version_set is None:
         return
@@ -95,19 +105,10 @@ def main() -> None:
                     f"py{minimal_version.major}{minimal_version.minor}"
                 )
 
-            python_version = ""
-            if "requires-python" in pyproject.get("project", {}):
-                python_version = pyproject["project"]["requires-python"]
-            elif "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-                "dependencies",
-                {},
-            ):
-                python_version = pyproject["tool"]["poetry"]["dependencies"]["python"]
-
-            if not python_version:
+            version_set = _get_python_specifiers_version(pyproject)
+            if version_set is None:
                 continue
 
-            version_set = packaging.specifiers.SpecifierSet(python_version)
             all_version = []
 
             for minor in range(first_version.minor, last_version.minor + 1):
@@ -115,7 +116,9 @@ def main() -> None:
                 if version_set.contains(version):
                     all_version.append(version)
 
-            if "project" in pyproject:
+            config = pyproject.get("tool", {}).get("python-versions-hook", {})
+            keep_requires_python = config.get("keep-requires-python", False)
+            if not keep_requires_python and "project" in pyproject:
                 pyproject["project"]["requires-python"] = f">={minimal_version}"
 
             has_classifiers = False

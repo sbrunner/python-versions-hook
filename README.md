@@ -45,6 +45,14 @@ You can also run it manually with:
 pre-commit run python-versions --all-files
 ```
 
+## Options
+
+The options are stored in the `pyproject.toml` file under the `[tool.python-versions-hook]` section.
+
+- `keep-requires-python`: Controls whether the hook modifies the `requires-python` field in the `pyproject.toml` file.
+  - When `false` (default): The hook will automatically update the `requires-python` field.
+  - When `true`: The hook will not modify the `requires-python` field (preserves its existing value).
+
 ## Tweak dependency
 
 This project can also be used as a replacement of the [Poetry plugin tweak dependencies version](https://github.com/sbrunner/poetry-plugin-tweak-dependencies-version) project.
