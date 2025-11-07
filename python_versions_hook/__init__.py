@@ -261,6 +261,7 @@ def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
             "version": dependency_config.get("version"),
             "in_extras": [],
             "use_extras": dependency_config.get("extras", []),
+            "optional": dependency_config.get("optional", False),
             "modifier": modifier,
         }
         if dependency_config.get("optional", False):
@@ -300,7 +301,7 @@ def _replace_dependencies(
         dependencies[requirement.name] = requirement
 
     for dependency_name, dependency_config in poetry_dependencies.items():
-        if extra is None and dependency_config["in_extras"]:
+        if extra is None and dependency_config["optional"]:
             continue
         if extra is not None and extra not in dependency_config["in_extras"]:
             continue
