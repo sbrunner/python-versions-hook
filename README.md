@@ -10,6 +10,8 @@ Support:
 - [Ruff](https://docs.astral.sh/ruff/) in `pyporoject.toml` and in `.prospector.yaml`.
 - [Prospector](https://prospector.landscape.io/) in `.prospector.yaml` for Mypy and Ruff.
 - [PEP-621](https://peps.python.org/pep-0621/) in `pyproject.toml`.
+- [Pyenv](https://github.com/pyenv/pyenv) in `.python-version`.
+- [pre-commit](https://pre-commit.com/) in `.pre-commit-config.yaml`.
 - [jsonschema-gentypes](https://developer.mend.io/github/sbrunner/jsonschema-gentypes) in `jsonschema-gentypes.yaml`.
 
 ## Adding to your `.pre-commit-config.yaml`
