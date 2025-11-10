@@ -90,6 +90,9 @@ def main() -> None:
     if minimal_version is None:
         return
 
+    # Set the Python version
+
+    # In all pyproject.toml files
     for pyproject_filename in _filenames("pyproject.toml"):
         with mra.EditTOML(pyproject_filename) as pyproject:
             if "python_version" in pyproject.get("tool", {}).get("mypy", {}):
@@ -157,23 +160,28 @@ def main() -> None:
 
             _tweak_dependency_version(pyproject)
 
+    # In .pre-commit-config.yaml
     pre_commit_config_path = Path(".pre-commit-config.yaml")
     if pre_commit_config_path.exists():
         with mra.EditPreCommitConfig() as pre_commit:
+            if "python" in pre_commit.get("default_language_version", {}):
+                pre_commit["default_language_version"]["python"] = (
+                    f"{minimal_version.major}.{minimal_version.minor}"
+                )
+
             if "https://github.com/asottile/pyupgrade" in pre_commit.repos_hooks:
-                print(pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"])
                 pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"]["hooks"][0][
                     "args"
                 ] = [
                     (f"--py{minimal_version.major}{minimal_version.minor}-plus"),
                 ]
 
-    jsonschema_gentypes_path = Path("jsonschema-gentypes.yaml")
-    if jsonschema_gentypes_path.exists():
-        with mra.EditYAML(jsonschema_gentypes_path) as yaml:
-            yaml["python_version"] = f"{minimal_version.major}.{minimal_version.minor}"
+    # In .python-version
+    python_version_path = Path(".python-version")
+    if python_version_path.exists():
+        python_version_path.write_text(f"{minimal_version.major}.{minimal_version.minor}\n")
 
-    # on all .prospector.yaml files
+    # In all .prospector.yaml files
     for prospector_filename in _filenames("*.prospector.yaml"):
         with mra.EditYAML(prospector_filename) as yaml:
             yaml.setdefault("mypy", {}).setdefault("options", {})["python-version"] = (
@@ -182,6 +190,12 @@ def main() -> None:
             yaml.setdefault("ruff", {}).setdefault("options", {})["target-version"] = (
                 f"py{minimal_version.major}{minimal_version.minor}"
             )
+
+    # In jsonschema-gentypes.yaml
+    jsonschema_gentypes_path = Path("jsonschema-gentypes.yaml")
+    if jsonschema_gentypes_path.exists():
+        with mra.EditYAML(jsonschema_gentypes_path) as yaml:
+            yaml["python_version"] = f"{minimal_version.major}.{minimal_version.minor}"
 
 
 # beaker (>=1.13.0,<2.0.0)
