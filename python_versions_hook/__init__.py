@@ -5,7 +5,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import multi_repo_automation as mra
 import packaging.requirements
