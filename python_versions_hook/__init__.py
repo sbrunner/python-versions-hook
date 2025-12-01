@@ -5,7 +5,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import multi_repo_automation as mra
 import packaging.requirements
@@ -30,7 +30,7 @@ def _filenames(pattern: str) -> list[Path]:
 _digit = re.compile("([0-9]+)")
 
 
-def _natural_sort_key(text: str) -> list[Union[int, str]]:
+def _natural_sort_key(text: str) -> list[int | str]:
     return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
@@ -45,7 +45,7 @@ def _get_python_version() -> tuple[
     return first_version, last_version
 
 
-def _get_python_specifiers_version(pyproject: mra.EditTOML) -> Optional[packaging.specifiers.SpecifierSet]:
+def _get_python_specifiers_version(pyproject: mra.EditTOML) -> packaging.specifiers.SpecifierSet | None:
     config = pyproject.get("tool", {}).get("python-versions-hook", {})
     keep_requires_python = config.get("keep-requires-python", False)
     use_requires_python = keep_requires_python and "requires-python" in pyproject.get("project", {})
@@ -306,7 +306,7 @@ def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
 def _replace_dependencies(
     current_dependencies: list[str],
     poetry_dependencies: dict[str, dict[str, Any]],
-    extra: Optional[str],
+    extra: str | None,
 ) -> list[str]:
     """Replace the dependencies in the pyproject.toml file."""
     dependencies = {}
