@@ -1,4 +1,4 @@
 c2cciutils==1.7.5
-pre-commit==4.3.0
+pre-commit==4.5.0
 tag-publish==1.1.1
 poetry==2.2.1
