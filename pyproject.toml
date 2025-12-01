@@ -1,5 +1,5 @@
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 110
 
 [tool.ruff.lint]
@@ -20,7 +20,7 @@ convention = "numpy"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<4.0"
 multi-repo-automation = "==1.7.0"
 packaging = "==25.0"
 
@@ -54,11 +54,9 @@ format-jinja = """
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
@@ -72,7 +70,7 @@ readme = "README.md"
 keywords = ["pre-commit"]
 license = "BSD-2-Clause"
 authors = [{name = "Stéphane Brunner",email = "stephane.brunner@gmail.com"}]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["multi-repo-automation", "packaging"]
 
 [project.urls]
