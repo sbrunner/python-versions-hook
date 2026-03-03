@@ -21,12 +21,12 @@ version = "0.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-multi-repo-automation = "==1.7.0"
+multi-repo-automation = "==1.8.1"
 packaging = "==26.0"
 
 [tool.poetry.group.dev.dependencies]
 prospector = { version = "1.18.0", extras = ["with_bandit", "with_mypy", "with_pyroma", "with_ruff"] }
-prospector-profile-utils = "1.26.5"
+prospector-profile-utils = "1.27.0"
 prospector-profile-duplicated = "1.12.0"
 pytest = "9.0.2"
 types-requests = "2.32.4.20260107"
