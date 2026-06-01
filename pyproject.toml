@@ -1,3 +1,38 @@
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Console',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Typing :: Typed',
+]
+dynamic = ["dependencies", "version"]
+name = "python-versions-hook"
+description = "Update the Python versions"
+readme = "README.md"
+keywords = ["pre-commit"]
+license = "BSD-2-Clause"
+authors = [{name = "Stéphane Brunner",email = "stephane.brunner@gmail.com"}]
+requires-python = ">=3.10"
+dependencies = ["multi-repo-automation", "packaging"]
+
+[project.urls]
+repository = "https://github.com/sbrunner/python-versions-hook"
+"Bug Tracker" = "https://github.com/sbrunner/python-versions-hook/issues"
+
+[project.scripts]
+python-versions-hook = "python_versions_hook:main"
+
 [tool.ruff]
 target-version = "py310"
 line-length = 110
@@ -49,37 +84,3 @@ format-jinja = """
 {{serialize_pep440(bump_version(base), dev=distance)}}
 {%- endif -%}
 """
-
-[project]
-classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Environment :: Console',
-    'Operating System :: OS Independent',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: 3.13',
-    'Typing :: Typed',
-]
-dynamic = ["dependencies", "version"]
-name = "python-versions-hook"
-description = "Update the Python versions"
-readme = "README.md"
-keywords = ["pre-commit"]
-license = "BSD-2-Clause"
-authors = [{name = "Stéphane Brunner",email = "stephane.brunner@gmail.com"}]
-requires-python = ">=3.10"
-dependencies = ["multi-repo-automation", "packaging"]
-
-[project.urls]
-repository = "https://github.com/sbrunner/python-versions-hook"
-"Bug Tracker" = "https://github.com/sbrunner/python-versions-hook/issues"
-
-[project.scripts]
-python-versions-hook = "python_versions_hook:main"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
