@@ -30,12 +30,14 @@ This hook automatically keeps your Python version settings consistent across var
 
 1. Detects the Python versions your project supports from your Poetry dependencies or PEP-621 `requires-python` field
 2. Updates the following based on the supported versions:
-   - Python classifiers in `pyproject.toml`
-   - Mypy's `python_version` setting in both `pyproject.toml` and `.prospector.yaml`
-   - Ruff's `target-version` setting in both `pyproject.toml` and `.prospector.yaml`
-   - Black's `target-version` setting in `pyproject.toml`
-   - Pyupgrade's `--py{version}-plus` argument in `.pre-commit-config.yaml`
-   - Python version in `jsonschema-gentypes.yaml`
+   - Python classifiers in `pyproject.toml`.
+   - Mypy's `python_version` setting in both `pyproject.toml` and `.prospector.yaml`.
+   - Ruff's `target-version` setting in both `pyproject.toml` and `.prospector.yaml`.
+   - Black's `target-version` setting in `pyproject.toml`.
+   - Pyupgrade's `--py{version}-plus` argument in `.pre-commit-config.yaml`.
+   - Python version in `jsonschema-gentypes.yaml`.
+   - Python version in `.python-version` if the file exists.
+   - Default Python version in `.pre-commit-config.yaml` if already defined.
 
 ## Usage
 
