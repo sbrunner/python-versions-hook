@@ -64,8 +64,7 @@ This project can also be used as a replacement of the [Poetry plugin tweak depen
 The configuration is like that:
 
 ```toml
-
-[tool.poetry-plugin-tweak-dependencies-version]
+[tool.tweak-poetry-dependencies-versions]
 default = "(present|major|minor|patch|full)" # Default to `full`
 "<package>" = "(present|major|minor|patch|full|<alternate version>)"
 ```
