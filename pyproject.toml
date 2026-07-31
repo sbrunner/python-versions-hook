@@ -29,7 +29,7 @@ prospector = { version = "1.19.0", extras = ["with_bandit", "with_mypy", "with_p
 prospector-profile-utils = "1.27.0"
 prospector-profile-duplicated = "1.12.0"
 pytest = "9.1.1"
-types-requests = "2.33.0.20260518"
+types-requests = "2.33.0.20260712"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -81,5 +81,5 @@ repository = "https://github.com/sbrunner/python-versions-hook"
 python-versions-hook = "python_versions_hook:main"
 
 [build-system]
-requires = ["poetry-core==2.4.0"]
+requires = ["poetry-core==2.4.1"]
 build-backend = "poetry.core.masonry.api"
