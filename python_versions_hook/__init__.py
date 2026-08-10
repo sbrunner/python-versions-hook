@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026, Stéphane Brunner
+
 """Python versions hooks."""
 
 import argparse
