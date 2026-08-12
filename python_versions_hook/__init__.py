@@ -36,33 +36,112 @@ def _natural_sort_key(text: str) -> list[int | str]:
     return [int(value) if value.isdigit() else value.lower() for value in _digit.split(text)]
 
 
-def _get_python_version() -> tuple[
+def _get_python_version_from_file(directory: Path) -> packaging.version.Version | None:
+    """Read Python version from .python-version file in a directory."""
+    python_version_path = directory / ".python-version"
+    if python_version_path.exists():
+        return packaging.version.parse(python_version_path.read_text().strip())
+    return None
+
+
+def _detect_python_version(
+    directory: Path,
+) -> packaging.specifiers.SpecifierSet | packaging.version.Version | None:
+    """
+    Detect Python version for a directory.
+
+    With priority:
+    1. pyproject.toml (local)
+    2. .python-version (local)
+    3. Parent directory (recursive)
+    """
+    # 1. Check pyproject.toml
+    pyproject_path = directory / "pyproject.toml"
+    if pyproject_path.exists():
+        version_set = _get_python_specifiers_version(pyproject_path)
+        if version_set is not None:
+            return version_set
+
+    # 2. Check .python-version
+    version = _get_python_version_from_file(directory)
+    if version is not None:
+        return version
+
+    # 3. Recursively check parent directory
+    parent = directory.parent
+    if parent != directory:  # Avoid infinite loop at root
+        return _detect_python_version(parent)
+
+    return None  # No version found
+
+
+def _get_python_version(
+    directory: Path,
+) -> tuple[
     packaging.version.Version,
     packaging.version.Version,
 ]:
-    first_version = packaging.version.parse("3.0")
-    data = pkgutil.get_data("python_versions_hook", ".python-version")
-    assert data is not None
-    last_version = packaging.version.parse(data.decode("utf-8").strip())
+    """Get the range of supported Python versions (3.0 to last_version)."""
+    first_version = packaging.version.Version("3.0")
+    last_version = _get_python_version_from_file(directory)
+
+    # Fallback to embedded .python-version if not found in directory
+    if last_version is None:
+        data = pkgutil.get_data("python_versions_hook", ".python-version")
+        assert data is not None
+        last_version = packaging.version.parse(data.decode("utf-8").strip())
+
     return first_version, last_version
 
 
-def _get_python_specifiers_version(pyproject: mra.EditTOML) -> packaging.specifiers.SpecifierSet | None:
-    config = pyproject.get("tool", {}).get("python-versions-hook", {})
-    keep_requires_python = config.get("keep-requires-python", False)
-    use_requires_python = keep_requires_python and "requires-python" in pyproject.get("project", {})
-    if not use_requires_python and "python" in pyproject.get("tool", {}).get("poetry", {}).get(
-        "dependencies",
-        {},
-    ):
-        return packaging.specifiers.SpecifierSet(
-            pyproject["tool"]["poetry"]["dependencies"]["python"],
-        )
-    if "requires-python" in pyproject.get("project", {}):
-        return packaging.specifiers.SpecifierSet(
-            pyproject["project"]["requires-python"],
-        )
-    return None
+def _convert_poetry_version_to_specifier(version: str) -> str:
+    """Convert Poetry version syntax (^3.8) to PEP 440 specifiers (>=3.8,<4.0)."""
+    if version.startswith("^"):
+        version = version[1:]
+        major = packaging.version.parse(version).major
+        return f">={version},<{major + 1}.0"
+    return version
+
+
+def _normalize_specifier_set(specifier_set: packaging.specifiers.SpecifierSet) -> str:
+    """Normalize the order of specifiers for consistent comparison."""
+    specifiers = sorted(str(s) for s in specifier_set)
+    return ",".join(specifiers)
+
+
+def _get_python_specifiers_version(pyproject_path: Path) -> packaging.specifiers.SpecifierSet | None:
+    with mra.EditTOML(pyproject_path) as pyproject:
+        config = pyproject.get("tool", {}).get("python-versions-hook", {})
+        keep_requires_python = config.get("keep-requires-python", False)
+        use_requires_python = keep_requires_python and "requires-python" in pyproject.get("project", {})
+
+        if not use_requires_python and "python" in pyproject.get("tool", {}).get("poetry", {}).get(
+            "dependencies",
+            {},
+        ):
+            version = pyproject["tool"]["poetry"]["dependencies"]["python"]
+            version = _convert_poetry_version_to_specifier(version)
+            specifier_set = packaging.specifiers.SpecifierSet(version)
+            # Normalize the order of specifiers
+            normalized_version = ",".join(sorted(str(s) for s in specifier_set))
+            return packaging.specifiers.SpecifierSet(normalized_version)
+
+        if "requires-python" in pyproject.get("project", {}):
+            return packaging.specifiers.SpecifierSet(
+                pyproject["project"]["requires-python"],
+            )
+        return None
+
+
+def _get_all_directories() -> list[Path]:
+    """Get all directories in the repository, excluding __pycache__ and .git."""
+    result = subprocess.run(
+        ["find", ".", "-type", "d", "-not", "-path", "./.git/*", "-not", "-path", "./__pycache__/*"],  # noqa: S607
+        check=True,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    return [Path(directory) for directory in result.stdout.splitlines() if directory != "."]
 
 
 def main() -> None:
@@ -70,33 +149,43 @@ def main() -> None:
     args_parser = argparse.ArgumentParser("Update the Python versions in all the project files")
     args_parser.parse_args()
 
-    version_set = None
-    for pyproject_filename in _filenames("pyproject.toml"):
-        with mra.EditTOML(pyproject_filename) as pyproject:
-            version_set = _get_python_specifiers_version(pyproject)
-            if version_set is not None:
-                break
+    # Process each directory independently
+    for directory in _get_all_directories():
+        version = _detect_python_version(directory)
+        if version is None:
+            continue
 
-    if version_set is None:
-        return
+        first_version, last_version = _get_python_version(directory)
+        assert first_version.major == last_version.major
 
-    first_version, last_version = _get_python_version()
-    assert first_version.major == last_version.major
-
-    minimal_version = None
-    for minor in range(first_version.minor, last_version.minor + 1):
-        version = packaging.version.parse(f"{first_version.major}.{minor}")
-        if version_set.contains(version) and minimal_version is None:
+        minimal_version = None
+        if isinstance(version, packaging.specifiers.SpecifierSet):
+            for minor in range(first_version.minor, last_version.minor + 1):
+                current_version = packaging.version.parse(f"{first_version.major}.{minor}")
+                if version.contains(current_version) and minimal_version is None:
+                    minimal_version = current_version
+        else:
+            # version is a packaging.version.Version
             minimal_version = version
 
-    if minimal_version is None:
-        return
+        if minimal_version is None:
+            continue
 
-    # Set the Python version
+        # Update files in the current directory only
+        _update_files_in_directory(directory, minimal_version, first_version, last_version)
 
-    # In all pyproject.toml files
-    for pyproject_filename in _filenames("pyproject.toml"):
-        with mra.EditTOML(pyproject_filename) as pyproject:
+
+def _update_files_in_directory(
+    directory: Path,
+    minimal_version: packaging.version.Version,
+    first_version: packaging.version.Version,
+    last_version: packaging.version.Version,
+) -> None:
+    """Update Python version configurations in all project files for a specific directory."""
+    # In pyproject.toml
+    pyproject_path = directory / "pyproject.toml"
+    if pyproject_path.exists():
+        with mra.EditTOML(pyproject_path) as pyproject:
             if "python_version" in pyproject.get("tool", {}).get("mypy", {}):
                 pyproject["tool"]["mypy"]["python_version"] = str(minimal_version)
 
@@ -110,16 +199,15 @@ def main() -> None:
                     f"py{minimal_version.major}{minimal_version.minor}"
                 )
 
-            version_set = _get_python_specifiers_version(pyproject)
+            version_set = _get_python_specifiers_version(pyproject_path)
             if version_set is None:
-                continue
+                return
 
             all_version = []
-
             for minor in range(first_version.minor, last_version.minor + 1):
-                version = packaging.version.parse(f"{first_version.major}.{minor}")
-                if version_set.contains(version):
-                    all_version.append(version)
+                current_version = packaging.version.parse(f"{first_version.major}.{minor}")
+                if version_set.contains(current_version):
+                    all_version.append(current_version)
 
             config = pyproject.get("tool", {}).get("python-versions-hook", {})
             keep_requires_python = config.get("keep-requires-python", False)
@@ -144,13 +232,13 @@ def main() -> None:
                 classifiers = pyproject["tool"]["poetry"]["classifiers"]
 
             if not has_classifiers:
-                continue
+                return
 
             classifiers = [c for c in classifiers if not c.startswith("Programming Language :: Python")]
             classifiers.append("Programming Language :: Python")
             classifiers.append("Programming Language :: Python :: 3")
-            for version in all_version:
-                classifiers.append(f"Programming Language :: Python :: {version}")
+            for current_version in all_version:
+                classifiers.append(f"Programming Language :: Python :: {current_version}")
 
             classifier_item = tomlkit.array(
                 sorted(classifiers, key=_natural_sort_key),  # type: ignore[arg-type]
@@ -162,10 +250,10 @@ def main() -> None:
 
             _tweak_dependency_version(pyproject)
 
-    # In .pre-commit-config.yaml
-    pre_commit_config_path = Path(".pre-commit-config.yaml")
+    # In .pre-commit-config.yaml (local)
+    pre_commit_config_path = directory / ".pre-commit-config.yaml"
     if pre_commit_config_path.exists():
-        with mra.EditPreCommitConfig() as pre_commit:
+        with mra.EditPreCommitConfig(pre_commit_config_path) as pre_commit:
             if "python" in pre_commit.get("default_language_version", {}):
                 pre_commit["default_language_version"]["python"] = (
                     f"{minimal_version.major}.{minimal_version.minor}"
@@ -178,14 +266,14 @@ def main() -> None:
                     (f"--py{minimal_version.major}{minimal_version.minor}-plus"),
                 ]
 
-    # In .python-version
-    python_version_path = Path(".python-version")
+    # In .python-version (local)
+    python_version_path = directory / ".python-version"
     if python_version_path.exists():
         python_version_path.write_text(f"{minimal_version.major}.{minimal_version.minor}\n")
 
-    # In all .prospector.yaml files
-    for prospector_filename in _filenames("*.prospector.yaml"):
-        with mra.EditYAML(prospector_filename) as yaml:
+    # In all .prospector.yaml files (local)
+    for prospector_path in directory.glob("*.prospector.yaml"):
+        with mra.EditYAML(prospector_path) as yaml:
             yaml.setdefault("mypy", {}).setdefault("options", {})["python-version"] = (
                 f"{minimal_version.major}.{minimal_version.minor}"
             )
@@ -193,8 +281,8 @@ def main() -> None:
                 f"py{minimal_version.major}{minimal_version.minor}"
             )
 
-    # In jsonschema-gentypes.yaml
-    jsonschema_gentypes_path = Path("jsonschema-gentypes.yaml")
+    # In jsonschema-gentypes.yaml (local)
+    jsonschema_gentypes_path = directory / "jsonschema-gentypes.yaml"
     if jsonschema_gentypes_path.exists():
         with mra.EditYAML(jsonschema_gentypes_path) as yaml:
             yaml["python_version"] = f"{minimal_version.major}.{minimal_version.minor}"
