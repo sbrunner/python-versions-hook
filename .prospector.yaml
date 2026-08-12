@@ -14,4 +14,3 @@ bandit:
 ruff:
   options:
     target-version: py310
-
