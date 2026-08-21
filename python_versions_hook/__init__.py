@@ -40,7 +40,12 @@ def _get_python_version_from_file(directory: Path) -> packaging.version.Version 
     """Read Python version from .python-version file in a directory."""
     python_version_path = directory / ".python-version"
     if python_version_path.exists():
-        return packaging.version.parse(python_version_path.read_text().strip())
+        raw = python_version_path.read_text().strip()
+        try:
+            return packaging.version.parse(raw)
+        except packaging.version.InvalidVersion:
+            # pyenv uses "system" to indicate the system Python; not a parseable version
+            return None
     return None
 
 

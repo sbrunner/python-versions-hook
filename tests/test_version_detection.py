@@ -73,6 +73,28 @@ def test_get_python_version_from_file(test_dir):
     assert version is None
 
 
+def test_get_python_version_from_file_system_value(test_dir):
+    """Test that 'system' in .python-version is ignored (pyenv convention)."""
+    subdir_system = test_dir / "subdir_system"
+    subdir_system.mkdir()
+    (subdir_system / ".python-version").write_text("system")
+
+    version = _get_python_version_from_file(subdir_system)
+    assert version is None
+
+
+def test_detect_python_version_system_falls_back_to_parent(test_dir):
+    """Test that 'system' in .python-version falls back to parent directory."""
+    subdir_system = test_dir / "subdir_system_child"
+    subdir_system.mkdir()
+    (subdir_system / ".python-version").write_text("system")
+
+    version = _detect_python_version(subdir_system)
+
+    version_str = ",".join(sorted(str(s) for s in version)) if isinstance(version, packaging.specifiers.SpecifierSet) else str(version)
+    assert version_str == "<4.0,>=3.8"
+
+
 def test_get_python_specifiers_version(test_dir):
     """Test reading Python version from pyproject.toml."""
     # Test Poetry syntax (^3.8 → >=3.8,<4.0)
