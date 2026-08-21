@@ -91,7 +91,11 @@ def test_detect_python_version_system_falls_back_to_parent(test_dir):
 
     version = _detect_python_version(subdir_system)
 
-    version_str = ",".join(sorted(str(s) for s in version)) if isinstance(version, packaging.specifiers.SpecifierSet) else str(version)
+    version_str = (
+        ",".join(sorted(str(s) for s in version))
+        if isinstance(version, packaging.specifiers.SpecifierSet)
+        else str(version)
+    )
     assert version_str == "<4.0,>=3.8"
 
 
