@@ -11,6 +11,7 @@ Support:
 - [Prospector](https://prospector.landscape.io/) in `.prospector.yaml` for Mypy and Ruff.
 - [PEP-621](https://peps.python.org/pep-0621/) in `pyproject.toml`.
 - [Pyenv](https://github.com/pyenv/pyenv) in `.python-version`.
+- [nvm](https://github.com/nvm-sh/nvm) in `.nvmrc` for the Node.js version.
 - [pre-commit](https://pre-commit.com/) in `.pre-commit-config.yaml`.
 - [jsonschema-gentypes](https://developer.mend.io/github/sbrunner/jsonschema-gentypes) in `jsonschema-gentypes.yaml`.
 
@@ -38,6 +39,13 @@ This hook automatically keeps your Python version settings consistent across var
    - Python version in `jsonschema-gentypes.yaml`.
    - Python version in `.python-version` if the file exists.
    - Default Python version in `.pre-commit-config.yaml` if already defined.
+
+The hook also keeps the Node.js version in sync: when a `.nvmrc` file is present and `.pre-commit-config.yaml`
+already defines `default_language_version.node`, the configured version is compared to the `.nvmrc` spec.
+If it does not match (or is not a full `major.minor.patch` version), it is replaced by the most recent full
+version for that spec, resolved via [nodejs.org](https://nodejs.org/dist/index.json). This is required because
+pre-commit builds the Node.js environment with `nodeenv`, which needs a full version (a bare major such as
+`22` is not usable). If `default_language_version.node` is not already defined, it is left untouched.
 
 ## Usage
 

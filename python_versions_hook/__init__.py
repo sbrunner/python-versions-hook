@@ -7,7 +7,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import multi_repo_automation as mra
 import packaging.requirements
@@ -149,6 +149,111 @@ def _get_all_directories() -> list[Path]:
     return [Path(directory) for directory in result.stdout.splitlines() if directory != "."]
 
 
+class _NodeRelease(TypedDict):
+    """Node.js release entry as found in nodejs.org/dist/index.json."""
+
+    version: str
+
+
+_NODE_INDEX_CACHE: dict[str, list[_NodeRelease] | None] = {}
+_NODE_SPEC_REGEX = re.compile(r"^\d+(\.\d+){0,2}$")
+_NODE_FULL_VERSION_REGEX = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+def _get_node_index() -> list[_NodeRelease] | None:
+    """Fetch and cache the Node.js release index (newest version first)."""
+    if "index" in _NODE_INDEX_CACHE:
+        return _NODE_INDEX_CACHE["index"]
+    index: list[_NodeRelease] | None = None
+    try:
+        response = requests.get("https://nodejs.org/dist/index.json", timeout=30)
+        response.raise_for_status()
+        index = response.json()
+    except requests.RequestException as e:
+        # Do not break the hook on a network failure; the Node.js version is just not synced
+        print(f"Error fetching Node.js version index: {e}")
+    _NODE_INDEX_CACHE["index"] = index
+    return index
+
+
+def _get_node_version_from_file(directory: Path) -> str | None:
+    """Read the Node.js version spec from an .nvmrc file in a directory."""
+    nvmrc_path = directory / ".nvmrc"
+    if not nvmrc_path.exists():
+        return None
+    raw = nvmrc_path.read_text().strip()
+    if not raw:
+        return None
+    # Only consider the first line, drop any inline comment and the leading `v`
+    spec = raw.splitlines()[0].split("#", 1)[0].strip().removeprefix("v")
+    # Aliases like `lts/*` or `node` cannot be resolved to a fixed major, skip them
+    if _NODE_SPEC_REGEX.match(spec):
+        return spec
+    return None
+
+
+def _detect_node_version(directory: Path) -> str | None:
+    """
+    Detect the Node.js version spec for a directory.
+
+    With priority:
+    1. .nvmrc (local)
+    2. Parent directory (recursive)
+    """
+    spec = _get_node_version_from_file(directory)
+    if spec is not None:
+        return spec
+    parent = directory.parent
+    if parent != directory:  # Avoid infinite loop at root
+        return _detect_node_version(parent)
+    return None
+
+
+def _node_version_matches(version: str, spec: str) -> bool:
+    """Return True if a full Node.js version satisfies the given version spec."""
+    version_parts = version.lstrip("v").split(".")
+    spec_parts = spec.lstrip("v").split(".")
+    return version_parts[: len(spec_parts)] == spec_parts
+
+
+def _node_needs_update(existing: str, spec: str) -> bool:
+    """Return True if the configured Node.js version must be replaced to match the spec."""
+    normalized = existing.lstrip("v").strip()
+    # A bare major/minor is not a valid nodeenv version, it must be resolved to a full one
+    if not _NODE_FULL_VERSION_REGEX.match(normalized):
+        return True
+    return not _node_version_matches(normalized, spec)
+
+
+def _resolve_latest_node(spec: str) -> str | None:
+    """Resolve a Node.js version spec to the most recent matching full version."""
+    index = _get_node_index()
+    if index is None:
+        return None
+    for entry in index:  # The index is sorted from the newest to the oldest version
+        version = entry["version"].lstrip("v")
+        if _node_version_matches(version, spec):
+            return version
+    return None
+
+
+def _update_node_language_version(directory: Path, pre_commit: mra.EditPreCommitConfig) -> None:
+    """
+    Sync `default_language_version.node` with the `.nvmrc` spec.
+
+    Only when the `node` key is already defined: if the configured version is incompatible
+    with `.nvmrc` (or is not a full version), it is replaced by the most recent matching one.
+    """
+    node_spec = _detect_node_version(directory)
+    if node_spec is None or "node" not in pre_commit.get("default_language_version", {}):
+        return
+    existing_node = str(pre_commit["default_language_version"]["node"])
+    if _node_needs_update(existing_node, node_spec):
+        latest_node = _resolve_latest_node(node_spec)
+        if latest_node is not None:
+            pre_commit["default_language_version"]["node"] = latest_node
+
+
 def main() -> None:
     """Python version configurations in all project files."""
     args_parser = argparse.ArgumentParser("Update the Python versions in all the project files")
@@ -263,6 +368,8 @@ def _update_files_in_directory(
                 pre_commit["default_language_version"]["python"] = (
                     f"{minimal_version.major}.{minimal_version.minor}"
                 )
+
+            _update_node_language_version(directory, pre_commit)
 
             if "https://github.com/asottile/pyupgrade" in pre_commit.repos_hooks:
                 pre_commit.repos_hooks["https://github.com/asottile/pyupgrade"]["repo"]["hooks"][0][

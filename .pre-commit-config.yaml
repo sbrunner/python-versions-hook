@@ -10,7 +10,7 @@ repos:
         files: |-
           (?x)^(
             (
-            |.*/)pyproject\.toml
+            |.*/)(pyproject\.toml|\.nvmrc)
             |python_versions_hook/__init__\.py
           )$
         pass_filenames: false

@@ -2,5 +2,5 @@
   name: python versions
   entry: python-versions-hook
   language: python
-  files: ^(|.*/)pyproject\.toml$
+  files: ^(|.*/)(pyproject\.toml|\.nvmrc)$
   pass_filenames: false
