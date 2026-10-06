@@ -139,14 +139,16 @@ def _get_python_specifiers_version(pyproject_path: Path) -> packaging.specifiers
 
 
 def _get_all_directories() -> list[Path]:
-    """Get all directories in the repository, excluding __pycache__ and .git."""
+    """Get all directories in the repository, including the root one, excluding __pycache__ and .git."""
     result = subprocess.run(
         ["find", ".", "-type", "d", "-not", "-path", "./.git/*", "-not", "-path", "./__pycache__/*"],  # noqa: S607
         check=True,
         stdout=subprocess.PIPE,
         encoding="utf-8",
     )
-    return [Path(directory) for directory in result.stdout.splitlines() if directory != "."]
+    # The root directory (.) must be included, else the root pyproject.toml and the other
+    # root configuration files are never updated.
+    return [Path(directory) for directory in result.stdout.splitlines()]
 
 
 class _NodeRelease(TypedDict):
