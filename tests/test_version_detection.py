@@ -14,6 +14,7 @@ import pytest
 
 from python_versions_hook import (
     _detect_python_version,
+    _get_all_directories,
     _get_python_specifiers_version,
     _get_python_version_from_file,
 )
@@ -131,3 +132,14 @@ def test_detect_python_version(test_dir):
         assert version_str == expected, (
             f"Failed for {directory.relative_to(test_dir)}: expected {expected}, got {version_str}"
         )
+
+
+def test_get_all_directories_includes_root(test_dir, monkeypatch):
+    """Test that the root directory is returned, else the root config files are never updated."""
+    monkeypatch.chdir(test_dir)
+
+    directories = _get_all_directories()
+
+    assert Path() in directories
+    assert Path("subdir1") in directories
+    assert Path("subdir2") / "subdir3" in directories
