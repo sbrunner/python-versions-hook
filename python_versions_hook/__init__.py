@@ -6,12 +6,14 @@ import argparse
 import pkgutil
 import re
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypedDict
 
 import multi_repo_automation as mra
 import packaging.requirements
 import packaging.specifiers
+import packaging.utils
 import packaging.version
 import requests
 import tomlkit
@@ -491,35 +493,80 @@ def _tweak_dependency_version(pyproject: mra.EditTOML) -> None:
     for dependency_config in new_dependencies.values():
         all_extras.extend(dependency_config["in_extras"])
 
+    # The `keep-project-dependencies` option can be a boolean (True: do not prune anything)
+    # or a list of package names to keep in the project sections even if they are prunable.
+    config = pyproject.get("tool", {}).get("python-versions-hook", {})
+    keep_project_dependencies = config.get("keep-project-dependencies", False)
+    prune_enabled = keep_project_dependencies is not True
+    keep_canonical_names = (
+        {packaging.utils.canonicalize_name(str(name)) for name in keep_project_dependencies}
+        if isinstance(keep_project_dependencies, list)
+        else set()
+    )
+
+    def should_prune(dependency_name: str) -> bool:
+        """Return True if the dependency entries can be pruned from the project sections."""
+        return prune_enabled and (
+            packaging.utils.canonicalize_name(dependency_name) not in keep_canonical_names
+        )
+
     # Parse current dependencies
     pyproject.setdefault("project", {})["dependencies"] = _replace_dependencies(
         pyproject.get("project", {}).get("dependencies", []),
         new_dependencies,
         None,
+        should_prune,
     )
     for extra_name in all_extras:
         pyproject["project"].setdefault("optional-dependencies", {})[extra_name] = _replace_dependencies(
             pyproject.get("project", {}).get("optional-dependencies", {}).get(extra_name, []),
             new_dependencies,
             extra_name,
+            should_prune,
         )
+
+    # Prune the optional-dependencies entries of the extras removed from tool.poetry.extras,
+    # the unknown dependencies are kept and the extra is removed only if it becomes empty.
+    optional_dependencies = pyproject.get("project", {}).get("optional-dependencies", {})
+    for extra_name in list(optional_dependencies):
+        if extra_name in all_extras:
+            continue
+        pruned_dependencies = _replace_dependencies(
+            optional_dependencies[extra_name],
+            new_dependencies,
+            extra_name,
+            should_prune,
+        )
+        if pruned_dependencies:
+            optional_dependencies[extra_name] = pruned_dependencies
+        else:
+            del optional_dependencies[extra_name]
 
 
 def _replace_dependencies(
     current_dependencies: list[str],
     poetry_dependencies: dict[str, dict[str, Any]],
     extra: str | None,
+    should_prune: Callable[[str], bool],
 ) -> list[str]:
     """Replace the dependencies in the pyproject.toml file."""
-    dependencies = {}
+    # The keys are canonicalized to match the packages independently of the name spelling
+    dependencies: dict[str, packaging.requirements.Requirement] = {}
     for dependency in current_dependencies:
         requirement = packaging.requirements.Requirement(dependency)
-        dependencies[requirement.name] = requirement
+        dependencies[packaging.utils.canonicalize_name(requirement.name)] = requirement
 
     for dependency_name, dependency_config in poetry_dependencies.items():
+        canonical_name = packaging.utils.canonicalize_name(dependency_name)
         if extra is None and dependency_config["optional"]:
+            # Prune the optional dependencies, they are published in the extras
+            if should_prune(dependency_name):
+                dependencies.pop(canonical_name, None)
             continue
         if extra is not None and extra not in dependency_config["in_extras"]:
+            # Prune the dependencies that are not (or no longer) in this extra
+            if should_prune(dependency_name):
+                dependencies.pop(canonical_name, None)
             continue
         if dependency_name == "python":
             # Skip python dependency
@@ -580,6 +627,6 @@ def _replace_dependencies(
                 version,
             )
 
-        dependencies[dependency_name] = requirement
+        dependencies[canonical_name] = requirement
 
     return [str(requirement) for requirement in dependencies.values()]

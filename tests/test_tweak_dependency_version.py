@@ -340,3 +340,190 @@ test_pkg = "major"
             # Python should be skipped, test_pkg should be processed
             assert "python" not in str(edit["project"]["dependencies"])
             assert "test_pkg<3,>=2" in edit["project"]["dependencies"]
+
+
+def test_tweak_dependency_version_prune_optional_dependency() -> None:
+    """Test that an optional dependency is pruned from the project dependencies."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = ["core_pkg<2,>=1", "opt_pkg<3,>=2"]
+
+[tool.poetry.dependencies]
+core_pkg = "1.2.3"
+opt_pkg = { version = "2.5.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["opt_pkg"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert list(edit["project"]["dependencies"]) == ["core_pkg<2,>=1"]
+            assert list(edit["project"]["optional-dependencies"]["dev"]) == ["opt_pkg<3,>=2"]
+
+
+def test_tweak_dependency_version_prune_extra_orphan() -> None:
+    """Test that a dependency removed from an extra is pruned from the extra list."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["old_pkg<2,>=1", "opt_pkg<3,>=2"]
+
+[tool.poetry.dependencies]
+old_pkg = { version = "1.2.3", optional = true }
+opt_pkg = { version = "2.5.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["opt_pkg"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert list(edit["project"]["optional-dependencies"]["dev"]) == ["opt_pkg<3,>=2"]
+
+
+def test_tweak_dependency_version_prune_removed_extra() -> None:
+    """Test that an extra removed from tool.poetry.extras is pruned if it becomes empty."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = []
+
+[project.optional-dependencies]
+removed = ["opt_pkg<3,>=2"]
+dev = ["opt_pkg<3,>=2"]
+
+[tool.poetry.dependencies]
+opt_pkg = { version = "2.5.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["opt_pkg"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert "removed" not in edit["project"]["optional-dependencies"]
+            assert list(edit["project"]["optional-dependencies"]["dev"]) == ["opt_pkg<3,>=2"]
+
+
+def test_tweak_dependency_version_prune_removed_extra_with_unknown_dependency() -> None:
+    """Test that a removed extra is kept if it still contains unknown dependencies."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = []
+
+[project.optional-dependencies]
+removed = ["unknown_pkg<2,>=1", "opt_pkg<3,>=2"]
+
+[tool.poetry.dependencies]
+opt_pkg = { version = "2.5.3", optional = true }
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert list(edit["project"]["optional-dependencies"]["removed"]) == ["unknown_pkg<2,>=1"]
+
+
+def test_tweak_dependency_version_keep_project_dependencies_true() -> None:
+    """Test that no pruning is done with keep-project-dependencies set to true."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = ["core_pkg<2,>=1", "opt_pkg<3,>=2"]
+
+[tool.python-versions-hook]
+keep-project-dependencies = true
+
+[tool.poetry.dependencies]
+core_pkg = "1.2.3"
+opt_pkg = { version = "2.5.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["opt_pkg"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert set(edit["project"]["dependencies"]) == {"core_pkg<2,>=1", "opt_pkg<3,>=2"}
+            assert list(edit["project"]["optional-dependencies"]["dev"]) == ["opt_pkg<3,>=2"]
+
+
+def test_tweak_dependency_version_keep_project_dependencies_list() -> None:
+    """Test that only the listed dependencies are kept with keep-project-dependencies as a list."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = ["core_pkg<2,>=1", "kept_pkg<3,>=2", "pruned_pkg<2,>=1"]
+
+[tool.python-versions-hook]
+keep-project-dependencies = ["Kept_Pkg"]
+
+[tool.poetry.dependencies]
+core_pkg = "1.2.3"
+kept_pkg = { version = "2.5.3", optional = true }
+pruned_pkg = { version = "1.2.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["kept_pkg", "pruned_pkg"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert set(edit["project"]["dependencies"]) == {"core_pkg<2,>=1", "kept_pkg<3,>=2"}
+            assert set(edit["project"]["optional-dependencies"]["dev"]) == {
+                "kept_pkg<3,>=2",
+                "pruned_pkg<2,>=1",
+            }
+
+
+def test_tweak_dependency_version_prune_canonical_name() -> None:
+    """Test that the pruning matches the dependencies independently of the name spelling."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
+        f.write("""
+[project]
+dependencies = ["Foo_Bar<2,>=1"]
+
+[tool.poetry.dependencies]
+foo-bar = { version = "1.2.3", optional = true }
+
+[tool.poetry.extras]
+dev = ["foo-bar"]
+
+[tool.tweak-poetry-dependencies-versions]
+default = "major"
+""")
+        f.flush()
+
+        with mra.EditTOML(Path(f.name)) as edit:
+            _tweak_dependency_version(edit)
+            assert list(edit["project"]["dependencies"]) == []
+            assert list(edit["project"]["optional-dependencies"]["dev"]) == ["foo-bar<2,>=1"]

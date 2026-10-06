@@ -64,6 +64,19 @@ The options are stored in the `pyproject.toml` file under the `[tool.python-vers
 - `keep-requires-python`: Controls whether the hook modifies the `requires-python` field in the `pyproject.toml` file.
   - When `false` (default): The hook will automatically update the `requires-python` field.
   - When `true`: The hook will not modify the `requires-python` field (preserves its existing value).
+- `keep-project-dependencies`: Controls the pruning of the `project.dependencies` and `project.optional-dependencies`
+  sections generated from the Poetry section, see [Tweak dependency](#tweak-dependency).
+  - When `false` or absent (default): The orphan entries are pruned:
+    - The dependencies marked as `optional = true` are removed from `project.dependencies`
+      (they are published in the extras).
+    - The dependencies that are no longer in an extra of `tool.poetry.extras` are removed
+      from the corresponding `project.optional-dependencies` list.
+    - The extras that no longer exist in `tool.poetry.extras` are removed from
+      `project.optional-dependencies` if they become empty.
+    - The dependencies unknown in the Poetry section are never pruned.
+  - When `true`: No pruning is done, the existing entries are kept (only additions and updates).
+  - When it is a list of package names: The pruning is done except for the listed packages that are
+    kept in the project sections.
 
 ## Tweak dependency
 
@@ -86,3 +99,6 @@ Poetry section with values that respect the configuration:
 - `patch` => Just fix the major, minor and patch version.
 - `full` => Get the full version from the Poetry section.
 - `<alternate version>` => use is as a version.
+
+The orphan entries in `project.dependencies` and `project.optional-dependencies` are pruned,
+this can be controlled with the `keep-project-dependencies` option, see [Options](#options).
